@@ -1,25 +1,38 @@
-import concurrent.futures
-import math
 import time
-import http.server
 import json
-import struct
-import socket, threading
+import socket
 import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
-from selenium.webdriver import ChromeOptions
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+# from pyvirtualdisplay import Display
 
 
+# from selenium.webdriver import ChromeOptions
+# from selenium import webdriver
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.chrome.service import Service as ChromeService
+# from webdriver_manager.chrome import ChromeDriverManager
+# from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+# display = Display(visible=0, size=(1920, 1080))
+# display.start()
 
-options = ChromeOptions()
+
+options = Options()
 options.add_experimental_option("detach", True)
 # 창 숨기는 옵션 추가
-options.add_argument("headless")
-driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+user_agent=f'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+options.add_argument(user_agent)
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+# service = Service(executable_path='/home/ubuntu/chromedriver-linux64/chromedriver')
+# driver = webdriver.Chrome(service=service, options=options)
+
 
 def getInfo(mid, keyword):
     rank = -1
@@ -29,12 +42,12 @@ def getInfo(mid, keyword):
         # step(1) 사이트 접속하기
         shopping_link = f"https://msearch.shopping.naver.com/search/all?frm=NVSHATC&pagingIndex={pagingIndex}&pagingSize=40&productSet=total&query={keyword}&sort=rel&timestamp=&viewType=list"
         driver.get(shopping_link)
-        time.sleep(1)
-
-        # step(2) 페이지를 3~5회 하단으로 내리기 (모바일버전 상품 더 불러오기)
-        for _ in range(3) :
-            driver.execute_script("window.scrollBy(0,10000);")
-            time.sleep(0.5)
+        time.sleep(0.5)
+        # step(2) 페이지를 하단으로 내리기 (모바일버전 상품 더 불러오기)
+        driver.execute_script("window.scrollBy(0,10000);")
+        time.sleep(0.5)
+        
+      
         # step(3) 타겟상품이 페이지에 노출되고 있는지 확인하기 
         # step(4) 없다면 -> url로 next page  
         try: 
@@ -48,20 +61,20 @@ def getInfo(mid, keyword):
             target_img_selector = f"//*[@id='_sr_lst_{mid}']/div/div[1]/span/img"
             img_element = driver.find_element(By.XPATH, target_img_selector)
             img_src = img_element.get_attribute('src')
-            print(f"img_src = {img_src}")
-
+            print(f"img_src = {img_src} keyword = {keyword}")
             # 상품 이름 찾기 
             target_name_selector = f"//*[@id='_sr_lst_{mid}']/div/div[1]/div/span"
             name_element = driver.find_element(By.XPATH, target_name_selector)
             name = name_element.text
-            print(f"name = {name}")
+            print(f"name = {name} keyword = {keyword}")
             data = {'rank': rank, 'item_name': name, 'img_url': img_src}
             break     
         except Exception as e: 
             print(f"{pagingIndex} 페이지에서 타겟 상품을 찾지 못함")
             # 다음페이지로 이동 필요 
         finally: 
-            driver.close
+            # driver.close
+            driver.quit
            
     return data
     
